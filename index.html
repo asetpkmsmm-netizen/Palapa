@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Digital Terpadu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+      color: #f8fafc; min-height: 100vh;
+    }
+    
+    .running-text-container {
+      background: rgba(220, 38, 38, 0.8); color: white; padding: 6px 0; font-size: 13px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; position: relative;
+    }
+    .running-text {
+      display: inline-block; padding-left: 100%; animation: scroll-left 20s linear infinite;
+    }
+    @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    .radial-container { position: relative; width: 320px; height: 320px; margin: 0 auto; }
+    @media (min-width: 640px) { .radial-container { width: 440px; height: 440px; } }
+    
+    /* Animasi Cahaya Bergelombang (Pulse Wave) untuk Tombol Utama */
+    @keyframes pulse-wave {
+      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7), 0 0 35px rgba(59, 130, 246, 0.6); }
+      70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0), 0 0 35px rgba(59, 130, 246, 0.6); }
+      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0), 0 0 35px rgba(59, 130, 246, 0.6); }
+    }
+
+    .center-logo {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 130px; height: 130px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95); 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 20; border: 4px solid #3b82f6; cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      /* Pemanggil efek berkedip/gelombang cahaya */
+      animation: pulse-wave 2s infinite; 
+    }
+    
+    .center-logo:hover { 
+      transform: translate(-50%, -50%) scale(1.08); 
+      border-color: #38bdf8; 
+      animation: none; /* Matikan kedip saat disentuh (hover) */
+      box-shadow: 0 0 45px rgba(56, 189, 248, 0.9); 
+    }
+
+    /* Posisi Kategori (Orbit) & Efek Zoom In */
+    .orbit-node {
+      position: absolute; width: 110px; height: 110px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 2px solid #3b82f6;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; text-align: center; padding: 8px; z-index: 15; color: #1e293b;
+      
+      /* Posisi langsung dipatok di titik koordinat masing-masing (tidak ditumpuk di tengah) */
+      top: var(--pos-y); left: var(--pos-x); 
+      
+      /* Awalnya mengecil (skala 0) alias menghilang */
+      transform: translate(-50%, -50%) scale(0); 
+      opacity: 0; pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efek memantul sedikit saat zoom */
+    }
+
+    /* Saat terbuka (zoom in sampai skala penuh 1) */
+    .radial-container:not(.collapsed) .orbit-node {
+      transform: translate(-50%, -50%) scale(1); 
+      opacity: 1; pointer-events: auto;
+    }
+
+    /* Saat tombol disentuh (membesar sedikit) */
+    .orbit-node:hover { transform: translate(-50%, -50%) scale(1.1) !important; }
+
+    /* Saat ditutup (kembali mengecil/zoom out) */
+    .collapsed .orbit-node {
+      transform: translate(-50%, -50%) scale(0) !important; 
+      opacity: 0 !important; pointer-events: none !important;
+    }
+
+    /* Efek Blur saat pop-up terbuka */
+    .blur-bg { filter: blur(4px); pointer-events: none; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <div id="runningTextContainer" class="running-text-container hidden">
+    <div class="running-text" id="runningTextContent"></div>
+  </div>
+
+  <div id="appContainer" class="p-4 md:p-8 flex-1 flex flex-col transition-all duration-300">
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto w-full flex justify-between items-center mb-4">
+      
+      <!-- Area Kiri: Logo Tersembunyi (agar JS aman) & Kolom Pencarian -->
+      <div class="flex flex-1 items-center">
+        <!-- Logo disembunyikan -->
+        <div class="hidden">
+          <div id="defaultHeaderIcon">🏥</div>
+          <img id="headerLogo" src="" alt="Logo" onerror="this.classList.add('hidden'); document.getElementById('defaultHeaderIcon').classList.remove('hidden');">
+          <h1 id="headerTitle">PKM</h1>
+          <p id="headerSlogan">Slogan</p>
+        </div>
+        
+        <!-- Kolom Pencarian (Pindah ke sini) -->
+        <div class="relative w-full max-w-xs sm:max-w-sm">
+          <input type="text" id="searchInput" onkeyup="filterLinks()" placeholder="Cari laporan..." class="w-full bg-slate-800/80 border border-slate-600/60 rounded-full px-4 py-2.5 pl-10 text-sm text-white focus:outline-none focus:border-sky-400 shadow-inner backdrop-blur-sm">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+        </div>
+      </div>
+
+      <!-- Area Kanan: Tombol Admin -->
+      <div class="flex items-center space-x-2 ml-4">
+        <button id="btnMainLogin" onclick="openLoginModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 border border-blue-500 transition-all">
+          <i class="fa-solid fa-lock me-1"></i> Admin
+        </button>
+        <!-- Tombol menu ini cuma muncul kalau admin sudah login -->
+        <button id="btnAddLinkMenu" onclick="openAdminModal()" title="Tambah Link" class="hidden bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg">
+          <i class="fa-solid fa-plus"></i><span class="hidden md:inline ml-1">Tambah</span>
+        </button>
+        <button id="btnCategoryMenu" onclick="openCategoryManager()" title="Kelola Kategori" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg border border-indigo-400">
+          <i class="fa-solid fa-tags"></i>
+        </button>
+        <button id="btnConfigMenu" onclick="openConfigModal()" title="Pengaturan Web" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg border border-slate-500">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <button id="btnLogout" onclick="handleLogout()" title="Keluar" class="hidden text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-xl text-sm font-semibold transition-all">
+          <i class="fa-solid fa-power-off"></i>
+        </button>
+      </div>
+    </header>
+
+    <main id="mainContent" class="max-w-6xl mx-auto w-full flex-1 flex flex-col justify-center items-center py-4">
+      
+      <div id="welcomeHeader" class="text-center -mt-16 mb-8 transition-all duration-500 opacity-100 transform translate-y-0">
+        <h2 class="text-xl md:text-3xl font-extrabold text-slate-800 drop-shadow-md tracking-wide mb-1" id="siteTitle">PORTAL DIGITAL</h2>
+        <p class="text-sm md:text-base text-slate-700 font-bold drop-shadow-sm" id="siteSlogan">Puskesmas Sungai Mariam</p>
+      </div>
+
+      <div id="radialView" class="w-full flex flex-col items-center">
+        <div id="radialContainer" class="radial-container collapsed">
+          <!-- Tambahan 'overflow-hidden' agar logo tidak keluar garis -->
+          <div onclick="toggleRadialMenu()" class="center-logo overflow-hidden">
+            <!-- Ikon default (Membesar jika logo tidak ada) -->
+            <div id="defaultCenterIcon" class="text-6xl">🏥</div>
+            
+            <!-- Logo diperbesar full memenuhi lingkaran (w-full h-full) -->
+            <img id="centerLogoImg" src="" alt="Logo" class="w-full h-full object-contain p-2 hidden" onerror="this.classList.add('hidden'); document.getElementById('defaultCenterIcon').classList.remove('hidden');">
+          </div>
+        </div>
+      </div>
+
+      <div id="gridView" class="w-full hidden mt-8">
+        <div class="flex items-center justify-between mb-6">
+          <button onclick="showHome()" class="text-slate-300 hover:text-white flex items-center space-x-2 text-sm font-semibold bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700">
+            <i class="fa-solid fa-arrow-left"></i><span>Kembali</span>
+          </button>
+          <h2 id="categoryTitle" class="text-xl font-bold text-sky-400">Daftar Laporan</h2>
+        </div>
+        <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="text-center text-xs text-white font-medium pb-4">&copy; 2026 Puskesmas Sungai Mariam</footer>
+
+<!-- ========================================= -->
+  <!-- CUSTOM TOAST NOTIFICATION & CONFIRM MODAL -->
+  <!-- ========================================= -->
+  
+  <!-- Notifikasi Melayang (Toast) -->
+  <div id="toastNotification" class="fixed top-5 right-5 transform translate-x-[120%] transition-all duration-300 z-[70] flex items-stretch shadow-2xl rounded-xl overflow-hidden opacity-0">
+    <div id="toastIcon" class="w-12 p-3 flex items-center justify-center text-white"></div>
+    <div class="bg-slate-800 p-3 min-w-[220px] border border-slate-700 border-l-0 rounded-r-xl flex flex-col justify-center">
+      <h4 id="toastTitle" class="text-white font-bold text-sm mb-0.5">Notifikasi</h4>
+      <p id="toastMessage" class="text-xs text-slate-400 leading-tight"></p>
+    </div>
+  </div>
+
+  <!-- Modal Konfirmasi Hapus Khusus -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-[70]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center transform scale-95 transition-all">
+      <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+        <i class="fa-solid fa-trash-can"></i>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2">Hapus Laporan?</h3>
+      <p class="text-sm text-slate-400 mb-6">Yakin ingin menghapus link laporan ini secara permanen? Data yang dihapus tidak dapat dikembalikan.</p>
+      <div class="flex justify-center space-x-3">
+        <button onclick="closeConfirmModal()" class="px-5 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-all">Batal</button>
+        <button id="btnConfirmDelete" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-all">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+<!-- ========================================= -->
+  <!-- MODAL PENGATURAN WEB (CONFIG) -->
+  <!-- ========================================= -->
+  <div id="configModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-gear text-sky-400 mr-2"></i>Pengaturan Tampilan</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+
+      <form onsubmit="handleSaveConfig(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Judul Utama Portal</label>
+          <input type="text" id="configTitle" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Slogan / Nama Instansi</label>
+          <input type="text" id="configSlogan" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">URL / Link Logo (Opsional)</label>
+          <input type="url" id="configLogo" placeholder="https://..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">URL / Link Wallpaper (Opsional)</label>
+          <input type="url" id="configWallpaper" placeholder="https://..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Running Text (Teks Berjalan)</label>
+          <textarea id="configRunningText" rows="2" placeholder="Kosongkan jika ingin menyembunyikan running text..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400"></textarea>
+        </div>
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closeModals()" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700">Batal</button>
+          <button type="submit" id="btnSaveConfig" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg flex items-center">
+            Simpan Pengaturan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- ========================================= -->
+  <!-- MODAL KELOLA KATEGORI (LIST) -->
+  <!-- ========================================= -->
+  <div id="categoryManagerModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-[60]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-tags text-indigo-400 mr-2"></i>Kelola Kategori</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="mb-4 flex justify-between items-center">
+        <p class="text-xs text-slate-400">Daftar kategori di halaman depan.</p>
+        <button onclick="openCategoryForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition-all"><i class="fa-solid fa-plus mr-1"></i>Tambah Baru</button>
+      </div>
+      <div id="categoryListContainer" class="flex-1 overflow-y-auto space-y-2 pr-2">
+        <!-- List kategori akan dirender di sini oleh JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================= -->
+  <!-- MODAL FORM TAMBAH/EDIT KATEGORI -->
+  <!-- ========================================= -->
+  <div id="categoryFormModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[70]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <h3 id="catFormTitle" class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-pen text-indigo-400 mr-2"></i>Form Kategori</h3>
+      <form onsubmit="handleSaveCategory(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Kategori</label>
+          <input type="text" id="catName" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-indigo-400 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Ikon (FontAwesome)</label>
+            <input type="text" id="catIcon" required placeholder="fa-heart" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-indigo-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Warna (Hex)</label>
+            <div class="flex items-center space-x-2">
+              <input type="color" id="catColorPicker" class="w-10 h-10 rounded cursor-pointer bg-transparent border-0 p-0" onchange="document.getElementById('catColor').value = this.value">
+              <input type="text" id="catColor" required placeholder="#ffffff" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-indigo-400 focus:outline-none">
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Urutan Tampil (Order)</label>
+          <input type="number" id="catOrder" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-indigo-400 focus:outline-none">
+        </div>
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closeCategoryForm()" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800">Batal</button>
+          <button type="submit" id="btnSaveCat" class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg">Simpan Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- ========================================= -->
+  <!-- MODAL LOGIN ADMIN -->
+  <!-- ========================================= -->
+  <div id="loginModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm p-6 shadow-2xl transform scale-95 transition-all">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-shield-halved text-sky-400 mr-2"></i>Akses Admin</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form onsubmit="handleLogin(event)">
+        <p class="text-xs text-slate-400 mb-4">Masukkan kata sandi untuk mengelola portal.</p>
+        <input type="password" id="adminPassword" required placeholder="Kata Sandi..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-sky-400 mb-4">
+        <button type="submit" id="btnLogin" class="w-full bg-sky-500 hover:bg-sky-600 text-white p-3 rounded-lg text-sm font-bold shadow-lg">
+          Masuk
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================= -->
+  <!-- MODAL FORM TAMBAH LINK (ADMIN PANEL) -->
+  <!-- ========================================= -->
+  <div id="adminModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-plus-circle text-sky-400 mr-2"></i>Tambah Link Baru</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      
+      <form onsubmit="handleSaveLink(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Laporan / Aplikasi <span class="text-red-400">*</span></label>
+          <input type="text" id="linkTitle" required placeholder="Contoh: Laporan Imunisasi" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">URL / Link Tujuan <span class="text-red-400">*</span></label>
+          <input type="url" id="linkUrl" required placeholder="https://docs.google.com/..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Kategori <span class="text-red-400">*</span></label>
+            <select id="linkCategory" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+              <option value="ukp">Layanan UKP</option>
+              <option value="ukm">Program UKM</option>
+              <option value="tu">TU & Admin</option>
+              <option value="eksternal">Aplikasi Kemenkes</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Status Server</label>
+            <select id="linkStatus" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+              <option value="Online">Online (Hijau)</option>
+              <option value="Maintenance">Maintenance (Kuning)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Badge / Label Prioritas (Opsional)</label>
+          <input type="text" id="linkBadge" placeholder="Contoh: Wajib Harian" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Deskripsi Singkat (Opsional)</label>
+          <textarea id="linkDesc" rows="2" placeholder="Keterangan isi laporan..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closeModals()" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700">Batal</button>
+          <button type="submit" id="btnSaveLink" class="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg flex items-center">
+            Simpan ke Database
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // KABEL API KE GOOGLE SHEETS
+    // ==========================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBStv7Ff2GC591vJfgWB3-Qn7o95V6pvxe1qY1ZKqySCfIesE5z_Q3yutfvvUYrml8/exec"; 
+
+    async function fetchAPI(action, data = null) {
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: action, data: data }),
+          redirect: 'follow'
+        });
+        return await response.json();
+      } catch (e) {
+        return { success: false, message: e.toString() };
+      }
+    }
+
+    let globalData = {};
+    let isCollapsed = true;
+    let isAdminLoggedIn = false; 
+    let linkIdToDelete = null; 
+    let itemTypeToDelete = null;
+    let isEditMode = false;
+    let currentEditId = null;
+    let isCatEditMode = false;
+    let currentCatEditId = null;
+
+    // --- FUNGSI TOAST & MODAL KONFIRMASI ---
+    function showToast(title, message, isSuccess = true) {
+      const toast = document.getElementById('toastNotification');
+      const toastIcon = document.getElementById('toastIcon');
+      document.getElementById('toastTitle').innerText = title;
+      document.getElementById('toastMessage').innerText = message;
+      if (isSuccess) {
+        toastIcon.className = "w-12 p-3 flex items-center justify-center text-white bg-emerald-500";
+        toastIcon.innerHTML = '<i class="fa-solid fa-check-circle text-xl"></i>';
+      } else {
+        toastIcon.className = "w-12 p-3 flex items-center justify-center text-white bg-red-500";
+        toastIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-xl"></i>';
+      }
+      toast.classList.remove('translate-x-[120%]', 'opacity-0');
+      setTimeout(() => { toast.classList.add('translate-x-[120%]', 'opacity-0'); }, 3000);
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+      document.getElementById('confirmModal').classList.remove('flex');
+    }
+
+    document.addEventListener("DOMContentLoaded", function() { fetchData(); });
+
+    function fetchData() {
+      fetchAPI('getPortalData').then(res => {
+        if(res && res.success) initPortal(JSON.stringify(res.data));
+      });
+    }
+
+    // --- FUNGSI RENDER TAMPILAN UTAMA ---
+    function initPortal(jsonString) {
+      globalData = JSON.parse(jsonString);
+      
+      if (globalData.config.wallpaper_url) {
+        document.body.style.backgroundImage = `url('${globalData.config.wallpaper_url}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+      } else {
+        document.body.style.background = 'radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%)';
+      }
+
+      if(globalData.config.logo_url) {
+        let hLogo = document.getElementById('headerLogo');
+        let cLogo = document.getElementById('centerLogoImg');
+        hLogo.src = globalData.config.logo_url;
+        cLogo.src = globalData.config.logo_url;
+        hLogo.onload = () => { hLogo.classList.remove('hidden'); document.getElementById('defaultHeaderIcon').classList.add('hidden'); };
+        cLogo.onload = () => { cLogo.classList.remove('hidden'); document.getElementById('defaultCenterIcon').classList.add('hidden'); };
+      }
+      
+      document.getElementById('siteTitle').innerText = globalData.config.site_title || "PORTAL DIGITAL";
+      document.getElementById('headerTitle').innerText = globalData.config.site_title || "PORTAL DIGITAL";
+      document.getElementById('headerSlogan').innerText = globalData.config.site_slogan || "Puskesmas Sungai Mariam";
+      document.getElementById('siteSlogan').innerText = globalData.config.site_slogan || "Puskesmas Sungai Mariam";
+
+      if(globalData.announcements && globalData.announcements.length > 0) {
+        let texts = globalData.announcements.map(a => a.content).join(" &nbsp;&nbsp; | &nbsp;&nbsp; ");
+        document.getElementById('runningTextContent').innerHTML = texts;
+        document.getElementById('runningTextContainer').classList.remove('hidden');
+      }
+
+      const container = document.getElementById('radialContainer');
+      container.querySelectorAll('.orbit-node').forEach(e => e.remove());
+      
+      if(globalData.categories) {
+        let sortedCats = [...globalData.categories].sort((a, b) => a.order - b.order);
+        const totalCats = sortedCats.length;
+        const radius = 38; 
+
+        sortedCats.forEach((cat, index) => {
+          let angle = (index / totalCats) * (2 * Math.PI) - (Math.PI / 2);
+          let x = 50 + radius * Math.cos(angle);
+          let y = 50 + radius * Math.sin(angle);
+
+          const div = document.createElement('div');
+          div.className = 'orbit-node';
+          div.style.borderColor = cat.color;
+          div.style.setProperty('--pos-x', `${x}%`);
+          div.style.setProperty('--pos-y', `${y}%`);
+          
+          div.onclick = () => showCategory(cat.id, cat.name);
+          div.innerHTML = `
+            <i class="fa-solid ${cat.icon} text-xl mb-1" style="color: ${cat.color}"></i>
+            <span class="text-[11px] font-bold leading-tight">${cat.name}</span>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      if(!document.getElementById('categoryManagerModal').classList.contains('hidden')) renderCategoryList();
+    }
+
+    function toggleRadialMenu() {
+      const container = document.getElementById('radialContainer');
+      const welcome = document.getElementById('welcomeHeader');
+      isCollapsed = !isCollapsed;
+      if (isCollapsed) {
+        container.classList.add('collapsed');
+        welcome.classList.remove('opacity-0', '-translate-y-4');
+        welcome.classList.add('opacity-100', 'translate-y-0');
+      } else {
+        container.classList.remove('collapsed');
+        welcome.classList.add('opacity-0', '-translate-y-4');
+        welcome.classList.remove('opacity-100', 'translate-y-0');
+      }
+    }
+
+    function showCategory(catId, catName) {
+      document.getElementById('radialView').classList.add('hidden');
+      document.getElementById('welcomeHeader').classList.add('hidden');
+      document.getElementById('gridView').classList.remove('hidden');
+      document.getElementById('categoryTitle').innerText = catName;
+      renderCards(catId);
+    }
+
+    function showHome() {
+      document.getElementById('gridView').classList.add('hidden');
+      document.getElementById('radialView').classList.remove('hidden');
+      document.getElementById('welcomeHeader').classList.remove('hidden');
+      document.getElementById('searchInput').value = '';
+    }
+
+    function renderCards(filterCatId = null, keyword = '') {
+      const container = document.getElementById('cardsGrid');
+      container.innerHTML = '';
+      
+      let filtered = globalData.links || [];
+      if (filterCatId) filtered = filtered.filter(l => l.category_id === filterCatId);
+      if (keyword) {
+        keyword = keyword.toLowerCase();
+        filtered = filtered.filter(l => l.title.toLowerCase().includes(keyword) || l.description.toLowerCase().includes(keyword));
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 drop-shadow-md font-medium">Data laporan tidak ditemukan.</div>`;
+        return;
+      }
+
+      filtered.forEach(link => {
+        let badgeHtml = link.badge ? `<span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] font-bold border border-red-500/30">${link.badge}</span>` : '';
+        let statusColor = link.status.toLowerCase() === 'online' ? 'text-green-400' : 'text-amber-400';
+        
+        let adminBtns = isAdminLoggedIn ? 
+          `<div class="flex items-center space-x-1">
+            <button onclick="editLink('${link.id}')" title="Edit Link" class="text-slate-400 hover:text-sky-400 bg-slate-800/80 p-1.5 rounded transition-all"><i class="fa-solid fa-pen text-xs"></i></button>
+            <button onclick="hapusLink('${link.id}')" title="Hapus Link" class="text-slate-400 hover:text-red-500 bg-slate-800/80 p-1.5 rounded transition-all"><i class="fa-solid fa-trash text-xs"></i></button>
+           </div>` : '';
+
+        container.innerHTML += `
+          <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-sky-400 transition-all shadow-lg">
+            <div>
+              <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
+                  <i class="fa-solid ${link.icon || 'fa-link'} text-lg"></i>
+                </div>
+                <div class="flex items-center space-x-2">${badgeHtml}${adminBtns}</div>
+              </div>
+              <h3 class="font-bold text-white text-base mb-1">${link.title}</h3>
+              <p class="text-xs text-slate-400 mb-2 line-clamp-2">${link.description}</p>
+              <p class="text-[10px] font-medium ${statusColor} mb-4"><i class="fa-solid fa-circle text-[8px] me-1"></i>${link.status}</p>
+            </div>
+            <a href="${link.url}" target="_blank" class="w-full bg-sky-500 hover:bg-sky-600 text-white text-center py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-2">
+              <span>Buka Tautan</span>
+              <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+            </a>
+          </div>
+        `;
+      });
+    }
+
+    function filterLinks() {
+      const kw = document.getElementById('searchInput').value;
+      if (kw.trim().length > 0) {
+        document.getElementById('radialView').classList.add('hidden');
+        document.getElementById('welcomeHeader').classList.add('hidden');
+        document.getElementById('gridView').classList.remove('hidden');
+        document.getElementById('categoryTitle').innerText = 'Hasil Pencarian';
+        renderCards(null, kw);
+      } else { showHome(); }
+    }
+
+    // --- FUNGSI ADMIN PANEL ---
+    function openLoginModal() {
+      document.getElementById('loginModal').classList.remove('hidden');
+      document.getElementById('loginModal').classList.add('flex');
+      document.getElementById('appContainer').classList.add('blur-bg');
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('adminPassword').focus();
+    }
+    function closeModals() {
+      document.getElementById('loginModal').classList.add('hidden');
+      document.getElementById('loginModal').classList.remove('flex');
+      document.getElementById('adminModal').classList.add('hidden');
+      document.getElementById('adminModal').classList.remove('flex');
+      document.getElementById('configModal').classList.add('hidden'); 
+      document.getElementById('configModal').classList.remove('flex'); 
+      document.getElementById('categoryManagerModal').classList.add('hidden');
+      document.getElementById('categoryManagerModal').classList.remove('flex');
+      document.getElementById('categoryFormModal').classList.add('hidden');
+      document.getElementById('categoryFormModal').classList.remove('flex');
+      document.getElementById('appContainer').classList.remove('blur-bg');
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      let btn = document.getElementById('btnLogin');
+      btn.innerText = "Memeriksa..."; btn.disabled = true;
+
+      fetchAPI('verifyAdminPassword', document.getElementById('adminPassword').value).then(res => {
+        btn.innerText = "Masuk"; btn.disabled = false;
+        if(res && res.success) {
+          isAdminLoggedIn = true; closeModals();
+          document.getElementById('btnMainLogin').classList.add('hidden');
+          document.getElementById('btnAddLinkMenu').classList.remove('hidden');
+          document.getElementById('btnCategoryMenu').classList.remove('hidden');
+          document.getElementById('btnConfigMenu').classList.remove('hidden');
+          document.getElementById('btnLogout').classList.remove('hidden');
+          showToast("Akses Diterima", "Mode Panel Admin Aktif.", true);
+          if(!document.getElementById('gridView').classList.contains('hidden')) filterLinks();
+        } else {
+          showToast("Gagal Masuk", res?.message || "Koneksi terputus.", false);
+          document.getElementById('adminPassword').value = '';
+        }
+      });
+    }
+
+    function handleLogout() {
+      isAdminLoggedIn = false;
+      document.getElementById('btnMainLogin').classList.remove('hidden');
+      document.getElementById('btnAddLinkMenu').classList.add('hidden');
+      document.getElementById('btnCategoryMenu').classList.add('hidden');
+      document.getElementById('btnConfigMenu').classList.add('hidden');
+      document.getElementById('btnLogout').classList.add('hidden');
+      showToast("Logout Berhasil", "Sistem kembali ke mode pengunjung.", true);
+      if(!document.getElementById('gridView').classList.contains('hidden')) filterLinks();
+    }
+
+    function openAdminModal() {
+      isEditMode = false;
+      document.getElementById('btnSaveLink').innerText = 'Simpan ke Database';
+      document.querySelector('#adminModal h3').innerHTML = '<i class="fa-solid fa-plus-circle text-sky-400 mr-2"></i>Tambah Link Baru';
+      document.getElementById('linkTitle').value = ''; 
+      
+      const catSelect = document.getElementById('linkCategory');
+      catSelect.innerHTML = '';
+      if(globalData.categories) {
+        globalData.categories.forEach(cat => { catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`; });
+      }
+      document.getElementById('adminModal').classList.remove('hidden');
+      document.getElementById('adminModal').classList.add('flex');
+      document.getElementById('appContainer').classList.add('blur-bg');
+    }
+
+    function openConfigModal() {
+      document.getElementById('configTitle').value = globalData.config.site_title || '';
+      document.getElementById('configSlogan').value = globalData.config.site_slogan || '';
+      document.getElementById('configLogo').value = globalData.config.logo_url || '';
+      document.getElementById('configWallpaper').value = globalData.config.wallpaper_url || '';
+      let runningText = '';
+      if(globalData.announcements && globalData.announcements.length > 0) runningText = globalData.announcements.map(a => a.content).join(" | ");
+      document.getElementById('configRunningText').value = runningText;
+      
+      document.getElementById('configModal').classList.remove('hidden');
+      document.getElementById('configModal').classList.add('flex');
+      document.getElementById('appContainer').classList.add('blur-bg');
+    }
+
+    function handleSaveLink(e) {
+      e.preventDefault();
+      let btn = document.getElementById('btnSaveLink');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...'; btn.disabled = true;
+
+      let newData = {
+        title: document.getElementById('linkTitle').value,
+        url: document.getElementById('linkUrl').value,
+        category: document.getElementById('linkCategory').value,
+        status: document.getElementById('linkStatus').value,
+        badge: document.getElementById('linkBadge').value,
+        description: document.getElementById('linkDesc').value
+      };
+
+      if (isEditMode) {
+        fetchAPI('updateLink', { id: currentEditId, payload: newData }).then(res => {
+          btn.innerHTML = 'Update Database'; btn.disabled = false;
+          if(res && res.success) { showToast("Berhasil Update!", res.message, true); closeModals(); fetchData(); } 
+          else { showToast("Gagal", res?.message || "Koneksi terputus.", false); }
+        });
+      } else {
+        fetchAPI('saveNewLink', newData).then(res => {
+          btn.innerHTML = 'Simpan ke Database'; btn.disabled = false;
+          if(res && res.success) { showToast("Berhasil!", "Link baru ditambahkan.", true); closeModals(); fetchData(); } 
+          else { showToast("Gagal", res?.message || "Koneksi terputus.", false); }
+        });
+      }
+    }
+
+    function editLink(id) {
+      isEditMode = true;
+      currentEditId = id;
+      let link = globalData.links.find(l => l.id.toString() === id.toString());
+      if(!link) return;
+
+      const catSelect = document.getElementById('linkCategory');
+      catSelect.innerHTML = '';
+      globalData.categories.forEach(cat => { catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`; });
+
+      document.getElementById('linkTitle').value = link.title;
+      document.getElementById('linkUrl').value = link.url;
+      document.getElementById('linkCategory').value = link.category_id;
+      document.getElementById('linkStatus').value = link.status;
+      document.getElementById('linkBadge').value = link.badge || '';
+      document.getElementById('linkDesc').value = link.description || '';
+
+      document.querySelector('#adminModal h3').innerHTML = '<i class="fa-solid fa-pen-to-square text-sky-400 mr-2"></i>Edit Link Laporan';
+      document.getElementById('btnSaveLink').innerText = 'Update Database';
+      document.getElementById('adminModal').classList.remove('hidden');
+      document.getElementById('adminModal').classList.add('flex');
+      document.getElementById('appContainer').classList.add('blur-bg');
+    }
+
+    function openCategoryManager() {
+      document.getElementById('categoryManagerModal').classList.remove('hidden');
+      document.getElementById('categoryManagerModal').classList.add('flex');
+      document.getElementById('appContainer').classList.add('blur-bg');
+      renderCategoryList();
+    }
+
+    function renderCategoryList() {
+      const container = document.getElementById('categoryListContainer');
+      container.innerHTML = '';
+      if(!globalData.categories || globalData.categories.length === 0) {
+         container.innerHTML = '<p class="text-sm text-slate-400">Belum ada kategori.</p>'; return;
+      }
+      let sortedCats = [...globalData.categories].sort((a,b) => a.order - b.order);
+      sortedCats.forEach(cat => {
+        container.innerHTML += `
+          <div class="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-white" style="background-color: ${cat.color}">
+                <i class="fa-solid ${cat.icon}"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">${cat.name}</h4>
+                <p class="text-[10px] text-slate-400">ID: ${cat.id} | Order: ${cat.order}</p>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="editCategory('${cat.id}')" class="text-slate-400 hover:text-indigo-400 p-1.5 bg-slate-900 rounded"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="hapusCategory('${cat.id}')" class="text-slate-400 hover:text-red-500 p-1.5 bg-slate-900 rounded"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function openCategoryForm() {
+      isCatEditMode = false;
+      currentCatEditId = null;
+      document.getElementById('catFormTitle').innerHTML = '<i class="fa-solid fa-plus text-indigo-400 mr-2"></i>Tambah Kategori';
+      document.getElementById('btnSaveCat').innerText = 'Simpan Kategori';
+      document.getElementById('catName').value = ''; document.getElementById('catIcon').value = '';
+      document.getElementById('catColor').value = ''; document.getElementById('catColorPicker').value = '#ffffff';
+      document.getElementById('catOrder').value = globalData.categories ? globalData.categories.length + 1 : 1;
+      document.getElementById('categoryFormModal').classList.remove('hidden');
+      document.getElementById('categoryFormModal').classList.add('flex');
+    }
+
+    function editCategory(id) {
+      isCatEditMode = true;
+      currentCatEditId = id;
+      let cat = globalData.categories.find(c => c.id === id);
+      if(!cat) return;
+
+      document.getElementById('catFormTitle').innerHTML = '<i class="fa-solid fa-pen text-indigo-400 mr-2"></i>Edit Kategori';
+      document.getElementById('btnSaveCat').innerText = 'Update Kategori';
+      document.getElementById('catName').value = cat.name; document.getElementById('catIcon').value = cat.icon;
+      document.getElementById('catColor').value = cat.color; document.getElementById('catColorPicker').value = cat.color;
+      document.getElementById('catOrder').value = cat.order;
+      document.getElementById('categoryFormModal').classList.remove('hidden');
+      document.getElementById('categoryFormModal').classList.add('flex');
+    }
+
+    function closeCategoryForm() {
+      document.getElementById('categoryFormModal').classList.add('hidden');
+      document.getElementById('categoryFormModal').classList.remove('flex');
+    }
+
+    function handleSaveCategory(e) {
+      e.preventDefault();
+      let btn = document.getElementById('btnSaveCat');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...'; btn.disabled = true;
+
+      let catData = { name: document.getElementById('catName').value, icon: document.getElementById('catIcon').value, color: document.getElementById('catColor').value, order: document.getElementById('catOrder').value };
+
+      if(isCatEditMode) {
+        fetchAPI('updateCategory', { id: currentCatEditId, payload: catData }).then(res => {
+          btn.disabled = false; closeCategoryForm();
+          if(res && res.success) { showToast("Berhasil", res.message, true); fetchData(); } 
+          else { showToast("Gagal", res?.message || "Koneksi terputus", false); }
+        });
+      } else {
+        fetchAPI('saveNewCategory', catData).then(res => {
+          btn.disabled = false; closeCategoryForm();
+          if(res && res.success) { showToast("Berhasil", res.message, true); fetchData(); } 
+          else { showToast("Gagal", res?.message || "Koneksi terputus", false); }
+        });
+      }
+    }
+
+    function handleSaveConfig(e) {
+      e.preventDefault();
+      let btn = document.getElementById('btnSaveConfig');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...'; btn.disabled = true;
+
+      let configData = {
+        site_title: document.getElementById('configTitle').value,
+        site_slogan: document.getElementById('configSlogan').value,
+        logo_url: document.getElementById('configLogo').value,
+        running_text: document.getElementById('configRunningText').value,
+        wallpaper_url: document.getElementById('configWallpaper').value
+      };
+
+      fetchAPI('updateConfig', configData).then(res => {
+        btn.innerHTML = 'Simpan Pengaturan'; btn.disabled = false;
+        if(res && res.success) { showToast("Berhasil!", res.message, true); closeModals(); fetchData(); } 
+        else { showToast("Gagal", res?.message || "Koneksi terputus", false); }
+      });
+    }
+
+    function hapusLink(id) {
+      itemTypeToDelete = 'link'; linkIdToDelete = id;
+      document.querySelector('#confirmModal h3').innerText = 'Hapus Laporan?';
+      document.querySelector('#confirmModal p').innerText = 'Yakin ingin menghapus link laporan ini secara permanen?';
+      document.getElementById('confirmModal').classList.remove('hidden'); document.getElementById('confirmModal').classList.add('flex');
+    }
+
+    function hapusCategory(id) {
+      itemTypeToDelete = 'category'; linkIdToDelete = id;
+      document.querySelector('#confirmModal h3').innerText = 'Hapus Kategori?';
+      document.querySelector('#confirmModal p').innerText = 'Awas! Pastikan tidak ada link yang menggunakan kategori ini sebelum dihapus.';
+      document.getElementById('confirmModal').classList.remove('hidden'); document.getElementById('confirmModal').classList.add('flex');
+    }
+
+    document.getElementById('btnConfirmDelete').addEventListener('click', function() {
+      if(!linkIdToDelete) return;
+      let btn = this; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      
+      if(itemTypeToDelete === 'link') {
+        fetchAPI('deleteLink', linkIdToDelete).then(res => {
+          btn.innerHTML = 'Ya, Hapus'; closeConfirmModal();
+          if(res && res.success) { showToast("Terhapus!", res.message, true); fetchData(); } 
+          else { showToast("Gagal", res?.message || "Koneksi terputus", false); }
+        });
+      } else if (itemTypeToDelete === 'category') {
+        fetchAPI('deleteCategory', linkIdToDelete).then(res => {
+          btn.innerHTML = 'Ya, Hapus'; closeConfirmModal();
+          if(res && res.success) { showToast("Terhapus!", res.message, true); fetchData(); } 
+          else { showToast("Gagal", res?.message || "Koneksi terputus", false); }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
