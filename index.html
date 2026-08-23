@@ -129,6 +129,9 @@
         <button id="btnConfigMenu" onclick="openConfigModal()" title="Pengaturan Web" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg border border-slate-500">
           <i class="fa-solid fa-gear"></i>
         </button>
+        <button id="btnPopupMenu" onclick="openPopupManager()" title="Kelola Pop-up" class="hidden bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg border border-orange-400">
+          <i class="fa-solid fa-bullhorn"></i>
+        </button>
         <button id="btnLogout" onclick="handleLogout()" title="Keluar" class="hidden text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-xl text-sm font-semibold transition-all">
           <i class="fa-solid fa-power-off"></i>
         </button>
@@ -379,7 +382,64 @@
       </form>
     </div>
   </div>
+<!-- ========================================= -->
+  <!-- MODAL POP-UP UNTUK PENGUNJUNG -->
+  <!-- ========================================= -->
+  <div id="userPopupModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[90]">
+    <div class="bg-slate-900 border-2 border-orange-500/50 rounded-2xl w-full max-w-md p-6 shadow-2xl relative transform scale-100 transition-all">
+      <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-orange-500 w-12 h-12 rounded-full flex items-center justify-center border-4 border-slate-900 shadow-lg">
+        <i class="fa-solid fa-bullhorn text-white text-xl"></i>
+      </div>
+      <div class="mt-4 max-h-[60vh] overflow-y-auto pr-2" id="userPopupContent">
+        <!-- Isi pop-up akan di-render di sini -->
+      </div>
+      <button onclick="closeUserPopup()" class="w-full mt-6 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-600 transition-all">
+        Saya Mengerti, Tutup
+      </button>
+    </div>
+  </div>
 
+  <!-- ========================================= -->
+  <!-- MODAL KELOLA POP-UP (ADMIN) -->
+  <!-- ========================================= -->
+  <div id="popupManagerModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-[60]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-bullhorn text-orange-400 mr-2"></i>Kelola Pop-up Darurat</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="mb-4 flex justify-between items-center">
+        <p class="text-xs text-slate-400">Otomatis hilang jika lewat batas waktu.</p>
+        <button onclick="openPopupForm()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition-all"><i class="fa-solid fa-plus mr-1"></i>Buat Baru</button>
+      </div>
+      <div id="popupListContainer" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
+    </div>
+  </div>
+
+  <div id="popupFormModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-[70]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-pen text-orange-400 mr-2"></i>Form Pop-up</h3>
+      <form onsubmit="handleSavePopup(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Judul Pengumuman</label>
+          <input type="text" id="popTitle" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-orange-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Isi Pesan</label>
+          <textarea id="popContent" required rows="4" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-orange-400 outline-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Batas Waktu Tayang (Kedaluwarsa)</label>
+          <input type="date" id="popEndDate" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-orange-400 outline-none">
+        </div>
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closePopupForm()" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800">Batal</button>
+          <button type="submit" id="btnSavePopup" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
   <script>
     // ==========================================
     // KABEL API KE GOOGLE SHEETS
@@ -505,6 +565,31 @@
       }
       
       if(!document.getElementById('categoryManagerModal').classList.contains('hidden')) renderCategoryList();
+    // LOGIKA MENAMPILKAN POP-UP OTOMATIS
+      if (globalData.popups && globalData.popups.length > 0) {
+        let activePopups = globalData.popups.filter(p => {
+          if (p.status !== 'Aktif') return false;
+          if (!p.end_date) return true;
+          let today = new Date(); today.setHours(0,0,0,0);
+          let endDate = new Date(p.end_date); endDate.setHours(23,59,59,999);
+          return today <= endDate; // Cek apakah belum kedaluwarsa
+        });
+
+        if (activePopups.length > 0) {
+          let popupContent = '';
+          activePopups.forEach(p => {
+            popupContent += `
+              <div class="mb-4 pb-4 border-b border-slate-700/50 last:border-0 last:mb-0 last:pb-0">
+                <h4 class="text-white font-bold text-lg mb-2"><i class="fa-solid fa-circle-exclamation text-orange-500 mr-2 text-sm"></i>${p.title}</h4>
+                <p class="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">${p.content}</p>
+              </div>
+            `;
+          });
+          document.getElementById('userPopupContent').innerHTML = popupContent;
+          document.getElementById('userPopupModal').classList.remove('hidden');
+          document.getElementById('userPopupModal').classList.add('flex');
+        }
+      }
     }
 
     function toggleRadialMenu() {
@@ -657,6 +742,8 @@
       document.getElementById('configModal').classList.add('hidden'); document.getElementById('configModal').classList.remove('flex');
       document.getElementById('categoryManagerModal').classList.add('hidden'); document.getElementById('categoryManagerModal').classList.remove('flex');
       document.getElementById('categoryFormModal').classList.add('hidden'); document.getElementById('categoryFormModal').classList.remove('flex');
+      document.getElementById('popupManagerModal').classList.add('hidden'); document.getElementById('popupManagerModal').classList.remove('flex');
+      document.getElementById('popupFormModal').classList.add('hidden'); document.getElementById('popupFormModal').classList.remove('flex');
       document.getElementById('appContainer').classList.remove('blur-bg');
     }
 
@@ -670,7 +757,8 @@
           document.getElementById('btnMainLogin').classList.add('hidden'); 
           document.getElementById('btnAddLinkMenu').classList.remove('hidden'); 
           document.getElementById('btnCategoryMenu').classList.remove('hidden'); 
-          document.getElementById('btnConfigMenu').classList.remove('hidden'); 
+          document.getElementById('btnConfigMenu').classList.remove('hidden');
+          document.getElementById('btnPopupMenu').classList.remove('hidden');
           document.getElementById('btnLogout').classList.remove('hidden');
           showToast("Akses Diterima", "Mode Panel Admin Aktif.", true);
           if(!document.getElementById('gridView').classList.contains('hidden')) renderCards(currentCategory, (navigationHistory.length > 1 ? navigationHistory[navigationHistory.length-1].id : ''));
@@ -683,6 +771,7 @@
       document.getElementById('btnAddLinkMenu').classList.add('hidden'); 
       document.getElementById('btnCategoryMenu').classList.add('hidden'); 
       document.getElementById('btnConfigMenu').classList.add('hidden'); 
+      document.getElementById('btnPopupMenu').classList.add('hidden');
       document.getElementById('btnLogout').classList.add('hidden');
       showToast("Logout", "Kembali ke mode pengunjung.", true); showHome();
     }
@@ -843,13 +932,87 @@
 
     document.getElementById('btnConfirmDelete').addEventListener('click', function() {
       let btn = this; btn.innerHTML = 'Memproses...';
-      let endpoint = itemTypeToDelete === 'link' ? 'deleteLink' : 'deleteCategory';
+      
+      // Routing tujuan hapus
+      let endpoint = 'deleteLink';
+      if (itemTypeToDelete === 'category') endpoint = 'deleteCategory';
+      if (itemTypeToDelete === 'popup') endpoint = 'deletePopup'; // <--- Opsi Popup ditambahkan
+
       fetchAPI(endpoint, linkIdToDelete).then(res => {
         btn.innerHTML = 'Ya, Hapus'; closeConfirmModal();
         if(res && res.success) { showToast("Terhapus!", res.message, true); fetchData(); } 
         else { showToast("Gagal", "Koneksi terputus.", false); }
       });
     });
+        btn.innerHTML = 'Ya, Hapus'; closeConfirmModal();
+        if(res && res.success) { showToast("Terhapus!", res.message, true); fetchData(); } 
+        else { showToast("Gagal", "Koneksi terputus.", false); }
+      });
+    });
+    // --- FUNGSI POP-UP PENGUNJUNG ---
+    function closeUserPopup() {
+      document.getElementById('userPopupModal').classList.add('hidden');
+      document.getElementById('userPopupModal').classList.remove('flex');
+    }
+
+    // --- FUNGSI ADMIN POP-UP ---
+    function openPopupManager() {
+      document.getElementById('popupManagerModal').classList.remove('hidden'); 
+      document.getElementById('popupManagerModal').classList.add('flex'); 
+      document.getElementById('appContainer').classList.add('blur-bg');
+      renderPopupList();
+    }
+    
+    function renderPopupList() {
+      const container = document.getElementById('popupListContainer'); container.innerHTML = '';
+      if(!globalData.popups || globalData.popups.length === 0) { container.innerHTML = '<p class="text-sm text-slate-400">Belum ada pop-up pengumuman.</p>'; return; }
+      
+      let today = new Date(); today.setHours(0,0,0,0);
+      
+      globalData.popups.forEach(p => {
+        let endDate = new Date(p.end_date); endDate.setHours(23,59,59,999);
+        let isExpired = today > endDate;
+        let statusBadge = isExpired ? '<span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">Expired</span>' : '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">Aktif</span>';
+        let dateStr = endDate.toLocaleDateString('id-ID');
+
+        container.innerHTML += `
+          <div class="flex items-start justify-between bg-slate-800 p-3 rounded-lg border border-slate-700">
+            <div>
+              <h4 class="text-sm font-bold text-white mb-1">${p.title} ${statusBadge}</h4>
+              <p class="text-[11px] text-slate-400">Batas: ${dateStr}</p>
+            </div>
+            <button onclick="hapusPopup('${p.id}')" class="text-slate-400 hover:text-red-500 p-2 bg-slate-900 rounded"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+      });
+    }
+
+    function openPopupForm() {
+      document.getElementById('popTitle').value = ''; document.getElementById('popContent').value = ''; document.getElementById('popEndDate').value = '';
+      document.getElementById('popupFormModal').classList.remove('hidden'); document.getElementById('popupFormModal').classList.add('flex');
+    }
+
+    function closePopupForm() {
+      document.getElementById('popupFormModal').classList.add('hidden'); document.getElementById('popupFormModal').classList.remove('flex');
+    }
+
+    function handleSavePopup(e) {
+      e.preventDefault();
+      let btn = document.getElementById('btnSavePopup'); btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+      let data = { title: document.getElementById('popTitle').value, content: document.getElementById('popContent').value, end_date: document.getElementById('popEndDate').value };
+      fetchAPI('saveNewPopup', data).then(res => {
+        btn.innerHTML = 'Simpan'; btn.disabled = false; closePopupForm();
+        if(res && res.success) { showToast("Berhasil", res.message, true); fetchData(); } 
+        else { showToast("Gagal", "Koneksi terputus", false); }
+      });
+    }
+
+    function hapusPopup(id) {
+      itemTypeToDelete = 'popup'; linkIdToDelete = id;
+      document.getElementById('confirmTitle').innerText = 'Hapus Pop-up?';
+      document.getElementById('confirmDesc').innerText = 'Pengumuman ini akan dihapus permanen dari sistem.';
+      document.getElementById('confirmModal').classList.remove('hidden'); document.getElementById('confirmModal').classList.add('flex');
+    }
   </script>
 </body>
 </html>
