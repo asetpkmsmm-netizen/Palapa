@@ -944,11 +944,6 @@
         else { showToast("Gagal", "Koneksi terputus.", false); }
       });
     });
-        btn.innerHTML = 'Ya, Hapus'; closeConfirmModal();
-        if(res && res.success) { showToast("Terhapus!", res.message, true); fetchData(); } 
-        else { showToast("Gagal", "Koneksi terputus.", false); }
-      });
-    });
     // --- FUNGSI POP-UP PENGUNJUNG ---
     function closeUserPopup() {
       document.getElementById('userPopupModal').classList.add('hidden');
