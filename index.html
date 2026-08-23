@@ -450,6 +450,16 @@
     function initPortal(jsonString) {
       globalData = JSON.parse(jsonString);
       
+      // ==========================================
+      // OBAT PENYELAMAT DATA KOSONG (FORCE STRING)
+      // ==========================================
+      if (globalData.links) {
+        globalData.links.forEach(link => {
+          if (link.parent_id) link.parent_id = link.parent_id.toString();
+        });
+      }
+      // ==========================================
+      
       if (globalData.config.wallpaper_url) {
         document.body.style.backgroundImage = `url('${globalData.config.wallpaper_url}')`;
         document.body.style.backgroundSize = 'cover';
