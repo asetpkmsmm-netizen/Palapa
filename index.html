@@ -680,19 +680,19 @@
         // Tombol Admin + Tombol Drag (Hanya muncul jika tidak sedang mencari keyword)
         let adminBtns = '';
         if (isAdminLoggedIn) {
-          let dragBtn = !kw ? `<button title="Tahan & Geser" class="drag-handle text-slate-400 hover:text-white bg-slate-900/80 p-1.5 rounded transition-all cursor-grab active:cursor-grabbing"><i class="fa-solid fa-arrows-up-down-left-right text-xs"></i></button>` : '';
+          let dragBtn = !kw ? `<button title="Tahan & Geser" class="drag-handle text-slate-400 hover:text-white bg-slate-900/80 p-1.5 rounded transition-all cursor-grab active:cursor-grabbing" onclick="event.stopPropagation()"><i class="fa-solid fa-arrows-up-down-left-right text-xs"></i></button>` : '';
           adminBtns = `
           <div class="flex items-center space-x-1 absolute top-3 right-3 z-20">
             ${dragBtn}
-            <button onclick="editLink('${link.id}')" title="Edit" class="text-slate-400 hover:text-sky-400 bg-slate-900/80 p-1.5 rounded transition-all"><i class="fa-solid fa-pen text-xs"></i></button>
-            <button onclick="hapusLink('${link.id}')" title="Hapus" class="text-slate-400 hover:text-red-500 bg-slate-900/80 p-1.5 rounded transition-all"><i class="fa-solid fa-trash text-xs"></i></button>
+            <button onclick="event.stopPropagation(); editLink('${link.id}')" title="Edit" class="text-slate-400 hover:text-sky-400 bg-slate-900/80 p-1.5 rounded transition-all"><i class="fa-solid fa-pen text-xs"></i></button>
+            <button onclick="event.stopPropagation(); hapusLink('${link.id}')" title="Hapus" class="text-slate-400 hover:text-red-500 bg-slate-900/80 p-1.5 rounded transition-all"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>`;
         }
 
         if(link.type === 'folder') {
-           // Tambahkan data-id agar sistem tahu ID apa yang sedang digeser
+           // Kode Folder yang sudah dibersihkan kliknya
            container.innerHTML += `
-             <div data-id="${link.id}" class="relative bg-indigo-900/40 backdrop-blur-md border border-indigo-500/50 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-indigo-400 transition-all shadow-lg cursor-pointer group" onclick="if(!event.target.closest('.z-20')) showFolder('${link.id}', '${link.title}')">
+             <div data-id="${link.id}" class="relative bg-indigo-900/40 backdrop-blur-md border border-indigo-500/50 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-indigo-400 transition-all shadow-lg cursor-pointer group" onclick="showFolder('${link.id}', '${link.title}')">
                ${adminBtns}
                <div class="flex flex-col items-center justify-center py-4">
                  <div class="w-14 h-14 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold mb-3 group-hover:scale-110 transition-all">
@@ -706,7 +706,7 @@
         } else {
            let badgeHtml = link.badge ? `<span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] font-bold border border-red-500/30">${link.badge}</span>` : '';
            let statusColor = link.status.toLowerCase() === 'online' ? 'text-green-400' : 'text-amber-400';
-           // Tambahkan data-id juga di sini
+           
            container.innerHTML += `
              <div data-id="${link.id}" class="relative bg-slate-800/80 backdrop-blur-md border border-slate-700 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-sky-400 transition-all shadow-lg">
                ${adminBtns}
