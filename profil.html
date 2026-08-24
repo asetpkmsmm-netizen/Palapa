@@ -64,12 +64,100 @@
       </section>
 
       <section>
-        <h2 class="text-xl font-bold text-white mb-3 border-b border-slate-700 pb-2"><i class="fa-solid fa-sitemap text-sky-400 mr-2"></i>Struktur Organisasi</h2>
-        <p class="mb-4">
-          Susunan kepengurusan dan struktur tata kerja UPTD Puskesmas Sungai Mariam.
-        </p>
-        <!-- Kalau mau masukin gambar struktur, ganti link src di bawah ini -->
-        <!-- <img src="LINK_GAMBAR_STRUKTUR_KAMU" alt="Struktur Organisasi" class="w-full rounded-xl border border-slate-600 shadow-lg"> -->
+        <h2 class="text-xl font-bold text-white mb-6 border-b border-slate-700 pb-2"><i class="fa-solid fa-sitemap text-sky-400 mr-2"></i>Struktur Organisasi</h2>
+        
+        <!-- KEPALA PUSKESMAS -->
+        <div class="flex justify-center mb-8">
+          <div class="bg-slate-800 border-2 border-sky-500/50 rounded-xl p-4 text-center shadow-[0_0_15px_rgba(14,165,233,0.2)] max-w-sm w-full relative">
+            <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 w-10 h-10 bg-sky-500 rounded-full flex items-center justify-center border-4 border-slate-900">
+              <i class="fa-solid fa-user-doctor text-white text-sm"></i>
+            </div>
+            <h3 class="font-extrabold text-white text-lg mt-3">drg. Isyana Duli</h3>
+            <p class="text-sm text-sky-400 font-semibold">Kepala Puskesmas</p>
+          </div>
+        </div>
+
+        <!-- GRID KLASTER (Otomatis menyesuaikan layar HP/Laptop) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          <!-- KLASTER 1 -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col hover:border-sky-400 transition-all shadow-lg">
+            <div class="border-b border-slate-700 pb-3 mb-3 text-center">
+              <h4 class="font-bold text-white text-sm">Fitri Yani, SKM</h4>
+              <p class="text-[10px] text-slate-400">Penanggung Jawab</p>
+              <p class="text-xs text-sky-400 font-bold mt-1">Klaster Manajemen (1)</p>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-outside ml-4 flex-1">
+              <li>Manajemen Inti Puskesmas</li>
+              <li>Manajemen Arsip</li>
+              <li>Manajemen SDM</li>
+              <li>Manajemen Sarana, Prasarana, Perbelkes</li>
+              <li>Manajemen Mutu Pelayanan</li>
+              <li>Manajemen Keuangan dan Aset atau BMD</li>
+              <li>Manajemen Informasi Digital</li>
+              <li>Manajemen Jejaring</li>
+              <li>Manajemen Pemberdayaan Masyarakat</li>
+            </ul>
+          </div>
+
+          <!-- KLASTER 2 -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col hover:border-sky-400 transition-all shadow-lg">
+            <div class="border-b border-slate-700 pb-3 mb-3 text-center">
+              <h4 class="font-bold text-white text-sm">Sri Pujiati, S.ST. Bd</h4>
+              <p class="text-[10px] text-slate-400">Penanggung Jawab</p>
+              <p class="text-xs text-sky-400 font-bold mt-1">Klaster KIA (2)</p>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-outside ml-4 flex-1">
+              <li>Pelayanan Kesehatan Ibu Hamil, Bersalin dan Nifas</li>
+              <li>Pelayanan Kesehatan Bayi, Balita, dan Anak Prasekolah</li>
+              <li>Pelayanan Kesehatan Anak Usia Sekolah</li>
+              <li>Pelayanan Kesehatan Remaja</li>
+            </ul>
+          </div>
+
+          <!-- KLASTER 3 -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col hover:border-sky-400 transition-all shadow-lg">
+            <div class="border-b border-slate-700 pb-3 mb-3 text-center">
+              <h4 class="font-bold text-white text-sm">H. Budi S, S.Kep. Ns</h4>
+              <p class="text-[10px] text-slate-400">Penanggung Jawab</p>
+              <p class="text-xs text-sky-400 font-bold mt-1">Klaster Dewasa & Lansia (3)</p>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-outside ml-4 flex-1">
+              <li>Pelayanan Kesehatan Dewasa</li>
+              <li>Pelayanan Kesehatan Lanjut Usia</li>
+            </ul>
+          </div>
+
+          <!-- KLASTER 4 -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col hover:border-sky-400 transition-all shadow-lg">
+            <div class="border-b border-slate-700 pb-3 mb-3 text-center">
+              <h4 class="font-bold text-white text-sm">Wenny S, SKM</h4>
+              <p class="text-[10px] text-slate-400">Penanggung Jawab</p>
+              <p class="text-xs text-sky-400 font-bold mt-1">Klaster Penyakit Menular & Kesling (4)</p>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-outside ml-4 flex-1">
+              <li>Pelayanan Penanggulangan Penyakit Menular</li>
+              <li>Pelayanan Kesehatan Lingkungan</li>
+            </ul>
+          </div>
+
+          <!-- LINTAS KLASTER -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col hover:border-emerald-400 transition-all shadow-lg">
+            <div class="border-b border-slate-700 pb-3 mb-3 text-center">
+              <h4 class="font-bold text-white text-sm">dr. Yuditha Patiung</h4>
+              <p class="text-[10px] text-slate-400">Penanggung Jawab</p>
+              <p class="text-xs text-emerald-400 font-bold mt-1">Lintas Klaster</p>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-outside ml-4 flex-1">
+              <li>Pelayanan Gawat Darurat</li>
+              <li>Pelayanan Kefarmasian</li>
+              <li>Pelayanan Laboratorium</li>
+              <li>Pelayanan Kesehatan Masyarakat</li>
+              <li>Pelayanan Kesehatan Gigi dan Mulut</li>
+            </ul>
+          </div>
+
+        </div>
       </section>
 
     </div>
