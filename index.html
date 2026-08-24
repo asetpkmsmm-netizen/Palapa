@@ -134,6 +134,9 @@
         <button id="btnPopupMenu" onclick="openPopupManager()" title="Kelola Pop-up" class="hidden bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg border border-orange-400">
           <i class="fa-solid fa-bullhorn"></i>
         </button>
+        <button id="btnPageMenu" onclick="openPageManager()" title="Kelola Halaman" class="hidden bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg border border-purple-400">
+          <i class="fa-solid fa-file-lines"></i>
+        </button>
         <button id="btnLogout" onclick="handleLogout()" title="Keluar" class="hidden text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-xl text-sm font-semibold transition-all">
           <i class="fa-solid fa-power-off"></i>
         </button>
@@ -455,6 +458,61 @@
         <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
           <button type="button" onclick="closePopupForm()" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800">Batal</button>
           <button type="submit" id="btnSavePopup" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- ========================================= -->
+  <!-- MODAL KELOLA HALAMAN (LIST ADMIN) -->
+  <!-- ========================================= -->
+  <div id="pageManagerModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-[60]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-file-lines text-purple-400 mr-2"></i>Kelola Halaman Statis</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="mb-4 flex justify-between items-center">
+        <p class="text-xs text-slate-400">Daftar halaman yang muncul di menu navigasi.</p>
+        <button onclick="openPageForm()" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition-all"><i class="fa-solid fa-plus mr-1"></i>Buat Baru</button>
+      </div>
+      <div id="pageListContainer" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
+    </div>
+  </div>
+
+  <!-- ========================================= -->
+  <!-- MODAL FORM MESIN KETIK (QUILL EDITOR) -->
+  <!-- ========================================= -->
+  <div id="pageFormModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4 z-[70]">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl p-6 shadow-2xl flex flex-col h-[90vh]">
+      <h3 id="pageFormTitle" class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-pen text-purple-400 mr-2"></i>Tulis Halaman</h3>
+      
+      <form onsubmit="handleSavePage(event)" class="flex flex-col flex-1 overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Judul Halaman</label>
+            <input type="text" id="pageTitle" required class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-purple-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Ikon (FontAwesome)</label>
+            <input type="text" id="pageIcon" required placeholder="fa-hospital-user" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:border-purple-400 focus:outline-none">
+          </div>
+        </div>
+        
+        <!-- INI KANVAS KERTAS PUTIH UNTUK MENGETIK -->
+        <div class="flex-1 flex flex-col mb-4 overflow-hidden rounded-lg bg-slate-50 border border-slate-400">
+           <div id="quillEditorContainer" class="flex-1 overflow-y-auto text-slate-900"></div>
+        </div>
+        
+        <div class="flex justify-between items-center pt-3 border-t border-slate-700">
+           <div>
+              <label class="text-xs font-semibold text-slate-300 mr-2">Urutan:</label>
+              <input type="number" id="pageOrder" required class="w-16 bg-slate-800 border border-slate-600 rounded-lg p-1.5 text-sm text-white text-center focus:outline-none" value="1">
+           </div>
+          <div class="flex space-x-3">
+            <button type="button" onclick="closePageForm()" class="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800">Batal</button>
+            <button type="submit" id="btnSavePage" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg">Simpan Publikasi</button>
+          </div>
         </div>
       </form>
     </div>
@@ -858,6 +916,8 @@
       document.getElementById('categoryFormModal').classList.add('hidden'); document.getElementById('categoryFormModal').classList.remove('flex');
       document.getElementById('popupManagerModal').classList.add('hidden'); document.getElementById('popupManagerModal').classList.remove('flex');
       document.getElementById('popupFormModal').classList.add('hidden'); document.getElementById('popupFormModal').classList.remove('flex');
+      document.getElementById('pageManagerModal').classList.add('hidden'); document.getElementById('pageManagerModal').classList.remove('flex');
+      document.getElementById('pageFormModal').classList.add('hidden'); document.getElementById('pageFormModal').classList.remove('flex');
       document.getElementById('appContainer').classList.remove('blur-bg');
     }
 
@@ -874,6 +934,7 @@
           document.getElementById('btnConfigMenu').classList.remove('hidden');
           document.getElementById('btnPopupMenu').classList.remove('hidden');
           document.getElementById('btnLogout').classList.remove('hidden');
+          document.getElementById('btnPageMenu').classList.remove('hidden');
           showToast("Akses Diterima", "Mode Panel Admin Aktif.", true);
           if(!document.getElementById('gridView').classList.contains('hidden')) renderCards(currentCategory, (navigationHistory.length > 1 ? navigationHistory[navigationHistory.length-1].id : ''));
         } else { showToast("Gagal", "Kata sandi salah.", false); }
@@ -887,6 +948,7 @@
       document.getElementById('btnConfigMenu').classList.add('hidden'); 
       document.getElementById('btnPopupMenu').classList.add('hidden');
       document.getElementById('btnLogout').classList.add('hidden');
+      document.getElementById('btnPageMenu').classList.add('hidden');
       showToast("Logout", "Kembali ke mode pengunjung.", true); showHome();
     }
 
@@ -969,6 +1031,126 @@
         if(res && res.success) { showToast("Berhasil", res.message, true); fetchData(); } 
         else { showToast("Gagal", "Koneksi terputus", false); }
       });
+    }
+
+    // ==========================================
+    // FUNGSI MESIN KETIK & KELOLA HALAMAN (CMS)
+    // ==========================================
+    let isPageEditMode = false;
+    let currentPageEditId = null;
+    let quillEditor = null; // Variabel penyimpan mesin ketik
+
+    // 1. Fungsi Menyalakan Mesin Ketik (Hanya dipanggil sekali)
+    function initQuill() {
+      if (!quillEditor) {
+        quillEditor = new Quill('#quillEditorContainer', {
+          theme: 'snow',
+          placeholder: 'Ketik artikel atau panduan di sini...',
+          modules: {
+            toolbar: [
+              [{ 'header': [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'align': [] }],
+              ['link', 'image'],
+              ['clean'] // Tombol hapus format
+            ]
+          }
+        });
+      }
+    }
+
+    // 2. Tampilkan Daftar Halaman
+    function openPageManager() {
+      document.getElementById('pageManagerModal').classList.remove('hidden'); 
+      document.getElementById('pageManagerModal').classList.add('flex'); 
+      document.getElementById('appContainer').classList.add('blur-bg');
+      renderPageList();
+    }
+
+    function renderPageList() {
+      const container = document.getElementById('pageListContainer'); container.innerHTML = '';
+      if(!globalData.pages || globalData.pages.length === 0) { container.innerHTML = '<p class="text-sm text-slate-400">Belum ada halaman.</p>'; return; }
+      
+      let sortedPages = [...globalData.pages].sort((a,b) => a.order - b.order);
+      sortedPages.forEach(p => {
+        container.innerHTML += `
+          <div class="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-white bg-purple-500/20 text-purple-400 border border-purple-500/30"><i class="fa-solid ${p.icon}"></i></div>
+              <div><h4 class="text-sm font-bold text-white">${p.title}</h4></div>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="editPage('${p.id}')" class="text-slate-400 hover:text-purple-400 p-1.5 bg-slate-900 rounded"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="hapusPage('${p.id}')" class="text-slate-400 hover:text-red-500 p-1.5 bg-slate-900 rounded"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // 3. Buka Kertas Kosong (Tambah Baru)
+    function openPageForm() {
+      initQuill(); // Pastikan mesin ketik menyala
+      isPageEditMode = false; currentPageEditId = null;
+      document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-plus text-purple-400 mr-2"></i>Buat Halaman Baru';
+      document.getElementById('pageTitle').value = ''; 
+      document.getElementById('pageIcon').value = ''; 
+      document.getElementById('pageOrder').value = globalData.pages ? globalData.pages.length + 1 : 1;
+      quillEditor.root.innerHTML = ''; // Kosongkan kertas
+      
+      document.getElementById('pageFormModal').classList.remove('hidden'); 
+      document.getElementById('pageFormModal').classList.add('flex');
+    }
+
+    // 4. Buka Kertas Editan (Edit Lama)
+    function editPage(id) {
+      initQuill();
+      isPageEditMode = true; currentPageEditId = id;
+      let p = globalData.pages.find(x => x.id === id); if(!p) return;
+      
+      document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-pen text-purple-400 mr-2"></i>Edit Halaman';
+      document.getElementById('pageTitle').value = p.title; 
+      document.getElementById('pageIcon').value = p.icon; 
+      document.getElementById('pageOrder').value = p.order;
+      quillEditor.root.innerHTML = p.content; // Isi kertas dengan artikel dari database
+      
+      document.getElementById('pageFormModal').classList.remove('hidden'); 
+      document.getElementById('pageFormModal').classList.add('flex');
+    }
+
+    function closePageForm() {
+      document.getElementById('pageFormModal').classList.add('hidden'); 
+      document.getElementById('pageFormModal').classList.remove('flex');
+    }
+
+    // 5. Simpan Halaman ke Google Sheets
+    function handleSavePage(e) {
+      e.preventDefault();
+      let btn = document.getElementById('btnSavePage'); btn.innerHTML = 'Menyimpan...'; btn.disabled = true;
+      
+      let pageData = { 
+        title: document.getElementById('pageTitle').value, 
+        icon: document.getElementById('pageIcon').value, 
+        order: document.getElementById('pageOrder').value,
+        content: quillEditor.root.innerHTML // <--- Ngambil format HTML dari ketikan
+      };
+      
+      fetchAPI(isPageEditMode ? 'updatePage' : 'saveNewPage', isPageEditMode ? { id: currentPageEditId, payload: pageData } : pageData).then(res => {
+        btn.innerHTML = 'Simpan Publikasi'; btn.disabled = false; closePageForm();
+        if(res && res.success) { showToast("Berhasil", res.message, true); fetchData(); } 
+        else { showToast("Gagal", "Koneksi terputus", false); }
+      });
+    }
+
+    // 6. Fungsi Hapus Halaman
+    function hapusPage(id) {
+      itemTypeToDelete = 'page'; linkIdToDelete = id;
+      document.getElementById('confirmTitle').innerText = 'Hapus Halaman?';
+      document.getElementById('confirmDesc').innerText = 'Halaman statis ini akan dihapus permanen. Yakin?';
+      document.getElementById('confirmModal').classList.remove('hidden'); 
+      document.getElementById('confirmModal').classList.add('flex');
     }
 
     // --- FUNGSI KELOLA LINK Laporan ---
@@ -1058,7 +1240,8 @@
       // Routing tujuan hapus
       let endpoint = 'deleteLink';
       if (itemTypeToDelete === 'category') endpoint = 'deleteCategory';
-      if (itemTypeToDelete === 'popup') endpoint = 'deletePopup'; // <--- Opsi Popup ditambahkan
+      if (itemTypeToDelete === 'popup') endpoint = 'deletePopup';
+      if (itemTypeToDelete === 'page') endpoint = 'deletePage';
 
       fetchAPI(endpoint, linkIdToDelete).then(res => {
         btn.innerHTML = 'Ya, Hapus'; closeConfirmModal();
