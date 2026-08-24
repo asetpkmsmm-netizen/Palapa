@@ -373,6 +373,14 @@
           <label class="block text-xs font-semibold text-slate-300 mb-1">Deskripsi Singkat (Opsional)</label>
           <textarea id="linkDesc" rows="2" placeholder="Keterangan isi laporan..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400"></textarea>
         </div>
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Warna Folder (Khusus Microsite/Folder)</label>
+          <div class="flex items-center space-x-2">
+            <input type="color" id="linkColorPicker" class="w-10 h-10 rounded cursor-pointer bg-transparent border-0 p-0" onchange="document.getElementById('linkColor').value = this.value" value="#6366f1">
+            <input type="text" id="linkColor" placeholder="#6366f1" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+          </div>
+        </div>
 
         <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
           <button type="button" onclick="closeModals()" class="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700">Batal</button>
@@ -690,23 +698,28 @@
         }
 
         if(link.type === 'folder') {
-           // Bikin HTML Badge untuk Folder (posisinya nanti di tengah)
+           // Siapkan Warna (Default Indigo jika kosong)
+           let fColor = link.color || '#6366f1';
+           
+           // Alat peracik warna transparan (Hex to RGB)
+           let hexToRgb = (hex) => {
+             let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+             return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '99, 102, 241';
+           };
+           let fRgb = hexToRgb(fColor);
+           
            let badgeHtml = link.badge ? `<div class="mt-2 mb-1"><span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] font-bold border border-red-500/30 shadow-sm">${link.badge}</span></div>` : '';
            
-           // Kode Folder Update: Nampilin Badge dan Deskripsi Asli
+           // Cetak Kotak Folder dengan Warna Kustom
            container.innerHTML += `
-             <div data-id="${link.id}" class="relative bg-indigo-900/40 backdrop-blur-md border border-indigo-500/50 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-indigo-400 transition-all shadow-lg cursor-pointer group" onclick="showFolder('${link.id}', '${link.title}')">
+             <div data-id="${link.id}" class="relative backdrop-blur-md border p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 transition-all shadow-lg cursor-pointer group" style="background-color: rgba(${fRgb}, 0.15); border-color: rgba(${fRgb}, 0.5);" onmouseover="this.style.borderColor='${fColor}'" onmouseout="this.style.borderColor='rgba(${fRgb}, 0.5)'" onclick="showFolder('${link.id}', '${link.title}')">
                ${adminBtns}
                <div class="flex flex-col items-center justify-center py-2 h-full">
-                 <div class="w-14 h-14 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold mb-3 group-hover:scale-110 transition-all shadow-inner">
+                 <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold mb-3 group-hover:scale-110 transition-all shadow-inner" style="background-color: rgba(${fRgb}, 0.25); color: ${fColor}; box-shadow: 0 0 15px rgba(${fRgb}, 0.3);">
                    <i class="fa-solid fa-folder-open text-2xl"></i>
                  </div>
                  <h3 class="font-bold text-white text-lg text-center leading-tight">${link.title}</h3>
-                 
-                 <!-- Tempat Badge Prioritas Muncul -->
                  ${badgeHtml}
-                 
-                 <!-- Deskripsi (Kalau kosong, baru muncul tulisan 'Buka folder ini') -->
                  <p class="text-xs text-slate-300 text-center line-clamp-3 mt-2 leading-relaxed opacity-90">
                    ${link.description || 'Buka folder ini untuk melihat isi laporan.'}
                  </p>
@@ -898,6 +911,8 @@
       document.querySelector('#adminModal h3').innerHTML = '<i class="fa-solid fa-plus text-sky-400 mr-2"></i>Tambah Item';
       document.getElementById('linkTitle').value = ''; document.getElementById('linkUrl').value = '';
       document.getElementById('linkType').value = 'link'; document.getElementById('linkBadge').value = ''; document.getElementById('linkDesc').value = '';
+      document.getElementById('linkColor').value = '#6366f1'; 
+      document.getElementById('linkColorPicker').value = '#6366f1';
       
       const catSelect = document.getElementById('linkCategory'); catSelect.innerHTML = '';
       if(globalData.categories) globalData.categories.forEach(cat => { catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`; });
@@ -913,7 +928,8 @@
         title: document.getElementById('linkTitle').value, url: document.getElementById('linkUrl').value,
         category: document.getElementById('linkCategory').value, status: document.getElementById('linkStatus').value,
         badge: document.getElementById('linkBadge').value, description: document.getElementById('linkDesc').value,
-        type: document.getElementById('linkType').value, parent_id: document.getElementById('linkParent').value
+        type: document.getElementById('linkType').value, parent_id: document.getElementById('linkParent').value,
+        color: document.getElementById('linkColor').value
       };
       fetchAPI(isEditMode ? 'updateLink' : 'saveNewLink', isEditMode ? { id: currentEditId, payload: newData } : newData).then(res => {
         btn.innerHTML = 'Simpan ke Database'; btn.disabled = false;
@@ -925,12 +941,17 @@
     function editLink(id) {
       isEditMode = true; currentEditId = id;
       let link = globalData.links.find(l => l.id.toString() === id.toString()); if(!link) return;
+      
 
       const catSelect = document.getElementById('linkCategory'); catSelect.innerHTML = '';
       globalData.categories.forEach(cat => { catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`; });
       
       document.getElementById('linkCategory').value = link.category_id;
-      populateParentDropdown(link.category_id, link.parent_id || ''); 
+      populateParentDropdown(link.category_id, link.parent_id || '');
+      
+      let color = link.color || '#6366f1';
+      document.getElementById('linkColor').value = color; 
+      document.getElementById('linkColorPicker').value = color;
 
       document.getElementById('linkTitle').value = link.title; document.getElementById('linkUrl').value = link.url;
       document.getElementById('linkType').value = link.type || 'link'; document.getElementById('linkParent').value = link.parent_id || '';
