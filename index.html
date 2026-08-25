@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
   <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
@@ -1208,35 +1209,47 @@
       document.getElementById('pageFormModal').classList.remove('hidden'); 
       document.getElementById('pageFormModal').classList.add('flex');
     }
-
-    // 4. Buka Kertas Editan (Edit Lama) - Versi Anti Botak
+// 4. Buka Kertas Editan (Edit Lama) - Versi Anti Botak & Kebal Error
     function editPage(id) {
-      initQuill();
-      let p = globalData.pages.find(x => x.id === id); if(!p) return;
-      
-      document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-pen text-purple-400 mr-2"></i>Edit Halaman';
-      document.getElementById('pageTitle').value = p.title; 
-      document.getElementById('pageIcon').value = p.icon; 
-      document.getElementById('pageOrder').value = p.order;
+      try {
+        initQuill(); // Pastikan mesin ketik menyala
+        
+        // MENCEGAH BUG TIPE DATA: Paksa keduanya jadi String
+        let p = globalData.pages.find(x => x.id.toString() === id.toString()); 
+        if(!p) {
+          showToast("Error", "Data halaman tidak ditemukan di sistem.", false);
+          return;
+        }
+        
+        document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-pen text-purple-400 mr-2"></i>Edit Halaman';
+        document.getElementById('pageTitle').value = p.title || ''; 
+        document.getElementById('pageIcon').value = p.icon || ''; 
+        document.getElementById('pageOrder').value = p.order || 1;
 
-      // MESIN DETEKSI: Apakah isinya HTML kompleks (ada kotak div)?
-      let isComplexHtml = p.content.includes('<div') || p.content.includes('class=');
+        // MENCEGAH BUG KONTEN KOSONG: Beri nilai default string kosong
+        let contentStr = p.content || ''; 
+        
+        // MESIN DETEKSI: Apakah isinya HTML kompleks?
+        let isComplexHtml = contentStr.includes('<div') || contentStr.includes('class=') || contentStr.includes('style=');
 
-      if (isComplexHtml) {
-        // JIKA KODE RIBET: Paksa buka langsung di Mode HTML (Kertas Hitam)
-        if (!isHtmlMode) toggleHtmlMode();
-        document.getElementById('htmlEditorContainer').value = p.content; // Ambil murni dari database
-      } else {
-        // JIKA TEKS BIASA: Buka di Mode Visual (Kertas Putih)
-        if (isHtmlMode) toggleHtmlMode();
-        quillEditor.root.innerHTML = p.content;
+        if (isComplexHtml) {
+          // Paksa buka di Kertas Hitam (HTML)
+          if (!isHtmlMode) toggleHtmlMode();
+          document.getElementById('htmlEditorContainer').value = contentStr; 
+        } else {
+          // Buka di Kertas Putih (Visual)
+          if (isHtmlMode) toggleHtmlMode();
+          quillEditor.root.innerHTML = contentStr;
+        }
+        
+        isPageEditMode = true; currentPageEditId = id;
+        document.getElementById('pageFormModal').classList.remove('hidden'); 
+        document.getElementById('pageFormModal').classList.add('flex');
+      } catch (err) {
+        console.error("Gagal membuka halaman: ", err);
+        showToast("Error Sistem", "Gagal memuat mesin editor.", false);
       }
-      
-      isPageEditMode = true; currentPageEditId = id;
-      document.getElementById('pageFormModal').classList.remove('hidden'); 
-      document.getElementById('pageFormModal').classList.add('flex');
     }
-
     function closePageForm() {
       document.getElementById('pageFormModal').classList.add('hidden'); 
       document.getElementById('pageFormModal').classList.remove('flex');
@@ -1476,6 +1489,5 @@
       });
     }
   </script>
-  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 </body>
 </html>
