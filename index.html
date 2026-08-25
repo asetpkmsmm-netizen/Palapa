@@ -1158,19 +1158,30 @@
       document.getElementById('pageFormModal').classList.add('flex');
     }
 
-    // 4. Buka Kertas Editan (Edit Lama)
+    // 4. Buka Kertas Editan (Edit Lama) - Versi Anti Botak
     function editPage(id) {
       initQuill();
-      if (isHtmlMode) toggleHtmlMode();
-      isPageEditMode = true; currentPageEditId = id;
       let p = globalData.pages.find(x => x.id === id); if(!p) return;
       
       document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-pen text-purple-400 mr-2"></i>Edit Halaman';
       document.getElementById('pageTitle').value = p.title; 
       document.getElementById('pageIcon').value = p.icon; 
       document.getElementById('pageOrder').value = p.order;
-      quillEditor.root.innerHTML = p.content; // Isi kertas dengan artikel dari database
+
+      // MESIN DETEKSI: Apakah isinya HTML kompleks (ada kotak div)?
+      let isComplexHtml = p.content.includes('<div') || p.content.includes('class=');
+
+      if (isComplexHtml) {
+        // JIKA KODE RIBET: Paksa buka langsung di Mode HTML (Kertas Hitam)
+        if (!isHtmlMode) toggleHtmlMode();
+        document.getElementById('htmlEditorContainer').value = p.content; // Ambil murni dari database
+      } else {
+        // JIKA TEKS BIASA: Buka di Mode Visual (Kertas Putih)
+        if (isHtmlMode) toggleHtmlMode();
+        quillEditor.root.innerHTML = p.content;
+      }
       
+      isPageEditMode = true; currentPageEditId = id;
       document.getElementById('pageFormModal').classList.remove('hidden'); 
       document.getElementById('pageFormModal').classList.add('flex');
     }
