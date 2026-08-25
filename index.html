@@ -1116,7 +1116,7 @@
               // Jika sukses, selipkan link gambar dari Drive ke dalam kertas putih
               const range = quillEditor.getSelection();
               const cursorLocation = range ? range.index : 0;
-              quillEditor.insertEmbed(cursorLocation, 'image', res.url);
+              quillEditor.pasteHTML(cursorLocation, '<img src="' + res.url + '" class="w-full rounded-xl shadow-lg border border-slate-700" style="margin: 10px 0;">');
               showToast("Berhasil", res.message, true);
             } else {
               showToast("Gagal", "Upload error: " + res.message, false);
