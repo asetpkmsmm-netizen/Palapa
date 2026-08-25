@@ -1051,27 +1051,78 @@
     let currentPageEditId = null;
     let quillEditor = null; // Variabel penyimpan mesin ketik
 
-    // 1. Fungsi Menyalakan Mesin Ketik (Hanya dipanggil sekali)
+    // 1. Fungsi Menyalakan Mesin Ketik (Versi Canggih dengan Upload Drive)
     function initQuill() {
       if (!quillEditor) {
         quillEditor = new Quill('#quillEditorContainer', {
           theme: 'snow',
           placeholder: 'Ketik artikel atau panduan di sini...',
           modules: {
-            toolbar: [
-              [{ 'header': [1, 2, 3, false] }],
-              ['bold', 'italic', 'underline', 'strike'],
-              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-              [{ 'color': [] }, { 'background': [] }],
-              [{ 'align': [] }],
-              ['link', 'image'],
-              ['clean'] // Tombol hapus format
-            ]
+            toolbar: {
+              container: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'align': [] }],
+                ['link', 'image'], // Ikon gambar ada di sini
+                ['clean']
+              ],
+              handlers: {
+                // Saat tombol gambar diklik, jalankan fungsi custom kita
+                'image': imageUploadHandler 
+              }
+            }
           }
         });
       }
     }
-    let isHtmlMode = false; // Mengingat mode yang sedang aktif
+
+    // Fungsi Custom untuk menangkap gambar dan mengirim ke Drive
+    function imageUploadHandler() {
+      const input = document.createElement('input');
+      input.setAttribute('type', 'file');
+      input.setAttribute('accept', 'image/*');
+      input.click();
+
+      input.onchange = async function() {
+        const file = input.files[0];
+        if (!file) return;
+
+        // Cek ukuran maksimal 3MB biar gak berat
+        if (file.size > 3 * 1024 * 1024) {
+           showToast("Gagal", "Ukuran foto maksimal 3MB!", false);
+           return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function() {
+          const base64 = reader.result;
+          showToast("Mengunggah...", "Menyimpan foto ke Google Drive...", true);
+          
+          let btn = document.getElementById('btnSavePage'); 
+          btn.disabled = true; // Matikan tombol simpan sebentar biar aman
+
+          fetchAPI('uploadImage', {
+            base64: base64,
+            mimeType: file.type,
+            filename: file.name
+          }).then(res => {
+            btn.disabled = false;
+            if (res && res.success) {
+              // Jika sukses, selipkan link gambar dari Drive ke dalam kertas putih
+              const range = quillEditor.getSelection();
+              const cursorLocation = range ? range.index : 0;
+              quillEditor.insertEmbed(cursorLocation, 'image', res.url);
+              showToast("Berhasil", res.message, true);
+            } else {
+              showToast("Gagal", "Upload error: " + res.message, false);
+            }
+          });
+        };
+      };
+    }
 
     // 1.5 Fungsi Saklar HTML / Visual
     function toggleHtmlMode() {
