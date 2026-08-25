@@ -1045,12 +1045,13 @@
       });
     }
 
-    // ==========================================
+   // ==========================================
     // FUNGSI MESIN KETIK & KELOLA HALAMAN (CMS)
     // ==========================================
     let isPageEditMode = false;
     let currentPageEditId = null;
     let quillEditor = null; // Variabel penyimpan mesin ketik
+    let isHtmlMode = false;
 
     // 1. Fungsi Menyalakan Mesin Ketik (Versi Canggih dengan Upload Drive)
     function initQuill() {
@@ -1103,14 +1104,14 @@
           showToast("Mengunggah...", "Menyimpan foto ke Google Drive...", true);
           
           let btn = document.getElementById('btnSavePage'); 
-          btn.disabled = true; // Matikan tombol simpan sebentar biar aman
+          if(btn) btn.disabled = true; // Matikan tombol simpan sebentar biar aman
 
           fetchAPI('uploadImage', {
             base64: base64,
             mimeType: file.type,
             filename: file.name
           }).then(res => {
-            btn.disabled = false;
+            if(btn) btn.disabled = false;
             if (res && res.success) {
               // Jika sukses, selipkan link gambar dari Drive ke dalam kertas putih
               const range = quillEditor.getSelection();
@@ -1197,27 +1198,40 @@
 
     // 3. Buka Kertas Kosong (Tambah Baru)
     function openPageForm() {
-      initQuill(); // Pastikan mesin ketik menyala
-      if (isHtmlMode) toggleHtmlMode();
-      isPageEditMode = false; currentPageEditId = null;
-      document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-plus text-purple-400 mr-2"></i>Buat Halaman Baru';
-      document.getElementById('pageTitle').value = ''; 
-      document.getElementById('pageIcon').value = ''; 
-      document.getElementById('pageOrder').value = globalData.pages ? globalData.pages.length + 1 : 1;
-      quillEditor.root.innerHTML = ''; // Kosongkan kertas
-      
-      document.getElementById('pageFormModal').classList.remove('hidden'); 
-      document.getElementById('pageFormModal').classList.add('flex');
+      try {
+        if (typeof Quill === 'undefined') {
+          showToast("Error", "Library Quill belum selesai dimuat, pastikan ada internet.", false);
+          return;
+        }
+        initQuill(); // Pastikan mesin ketik menyala
+        if (isHtmlMode) toggleHtmlMode();
+        isPageEditMode = false; currentPageEditId = null;
+        document.getElementById('pageFormTitle').innerHTML = '<i class="fa-solid fa-plus text-purple-400 mr-2"></i>Buat Halaman Baru';
+        document.getElementById('pageTitle').value = ''; 
+        document.getElementById('pageIcon').value = ''; 
+        document.getElementById('pageOrder').value = globalData.pages ? globalData.pages.length + 1 : 1;
+        quillEditor.root.innerHTML = ''; // Kosongkan kertas
+        
+        document.getElementById('pageFormModal').classList.remove('hidden'); 
+        document.getElementById('pageFormModal').classList.add('flex');
+      } catch (err) {
+        showToast("Error", err.message, false);
+      }
     }
-// 4. Buka Kertas Editan (Edit Lama) - Versi Anti Botak & Kebal Error
+
+    // 4. Buka Kertas Editan (Edit Lama) - Versi Kebal Error Baris Kosong
     function editPage(id) {
       try {
+        if (typeof Quill === 'undefined') {
+          showToast("Error", "Library Quill belum selesai dimuat.", false);
+          return;
+        }
         initQuill(); // Pastikan mesin ketik menyala
         
-        // MENCEGAH BUG TIPE DATA: Paksa keduanya jadi String
-        let p = globalData.pages.find(x => x.id.toString() === id.toString()); 
+        // JURUS ANTI-ERROR: Konversi aman menggunakan String()
+        let p = globalData.pages.find(x => String(x.id) === String(id)); 
         if(!p) {
-          showToast("Error", "Data halaman tidak ditemukan di sistem.", false);
+          showToast("Error", "Data halaman tidak ditemukan di database.", false);
           return;
         }
         
@@ -1226,7 +1240,7 @@
         document.getElementById('pageIcon').value = p.icon || ''; 
         document.getElementById('pageOrder').value = p.order || 1;
 
-        // MENCEGAH BUG KONTEN KOSONG: Beri nilai default string kosong
+        // MENCEGAH BUG KONTEN KOSONG
         let contentStr = p.content || ''; 
         
         // MESIN DETEKSI: Apakah isinya HTML kompleks?
@@ -1247,9 +1261,10 @@
         document.getElementById('pageFormModal').classList.add('flex');
       } catch (err) {
         console.error("Gagal membuka halaman: ", err);
-        showToast("Error Sistem", "Gagal memuat mesin editor.", false);
+        showToast("System Error", err.message, false); // Munculkan pesan error aslinya
       }
     }
+
     function closePageForm() {
       document.getElementById('pageFormModal').classList.add('hidden'); 
       document.getElementById('pageFormModal').classList.remove('flex');
