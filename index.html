@@ -186,7 +186,9 @@
       <!-- AREA GRID LAPORAN (KATEGORI/FOLDER) -->
       <div id="gridView" class="hidden w-full max-w-5xl mx-auto mt-4 px-4 relative z-20">
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-          <button onclick="goBack()" class="text-slate-300 hover:text-white bg-slate-800/80 px-4 py-2 rounded-lg font-semibold transition-all mb-4 sm:mb-0 shadow-lg border border-slate-700">
+          
+          <!-- TOMBOL KEMBALI SEKALIGUS JADI AREA "DROP" UNTUK KELUAR FOLDER -->
+          <button id="btnGoBack" onclick="goBack()" ondragover="handleDragOverBack(event)" ondragleave="handleDragLeaveBack(event)" ondrop="handleDropBack(event)" class="text-slate-300 hover:text-white bg-slate-800/80 px-4 py-2 rounded-lg font-semibold transition-all mb-4 sm:mb-0 shadow-lg border border-slate-700">
             <i class="fa-solid fa-arrow-left me-2"></i>Kembali
           </button>
           
@@ -198,10 +200,20 @@
 
           <div class="w-[100px]"></div> <!-- Penyeimbang posisi tengah -->
         </div>
+
+        <!-- KOTAK QUICK ADD (HANYA MUNCUL UNTUK ADMIN) -->
+        <div id="quickAddContainer" class="hidden w-full bg-slate-800/80 p-3 rounded-xl border border-slate-600 flex-col sm:flex-row gap-2 mb-4 shadow-lg transition-all">
+          <input type="text" id="qaTitle" placeholder="Nama Folder / Link Baru..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          <select id="qaType" class="bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white outline-none" onchange="toggleQaUrl()">
+            <option value="link">Link</option>
+            <option value="folder">Folder</option>
+          </select>
+          <input type="text" id="qaUrl" placeholder="https://..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          <button onclick="handleQuickAdd()" class="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow transition-all"><i class="fa-solid fa-plus mr-1"></i> Buat</button>
+        </div>
+
         <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
-    </main>
-  </div>
 
   <footer class="fixed bottom-4 left-0 w-full text-center text-xs text-white font-medium drop-shadow-md z-10">&copy; 2026 Puskesmas Sungai Mariam</footer>
 
@@ -749,6 +761,14 @@
     }
 
     function renderCards(filterCatId = null, filterParentId = '') {
+      // >>> TAMBAH BARIS INI UNTUK MENAMPILKAN KOTAK QUICK ADD JIKA ADMIN <<<
+      let qa = document.getElementById('quickAddContainer');
+      const kw = document.getElementById('searchInput').value.toLowerCase();
+      if(qa) {
+         if (isAdminLoggedIn && !kw) qa.classList.replace('hidden', 'flex');
+         else qa.classList.replace('flex', 'hidden');
+      }
+      
       const container = document.getElementById('cardsGrid');
       container.innerHTML = '';
       
@@ -764,7 +784,6 @@
       }
 
       let filtered = globalData.links || [];
-      const kw = document.getElementById('searchInput').value.toLowerCase();
       
       if (kw) {
         filtered = filtered.filter(l => l.title.toLowerCase().includes(kw) || l.description.toLowerCase().includes(kw));
@@ -783,8 +802,10 @@
       }
 
       filtered.forEach(link => {
-        // Tombol Admin + Tombol Drag (Hanya muncul jika tidak sedang mencari keyword)
+        // Tombol Admin + Tombol Drag
         let adminBtns = '';
+        let dragEvents = ''; 
+        
         if (isAdminLoggedIn) {
           let dragBtn = !kw ? `<button title="Tahan & Geser" class="drag-handle text-slate-400 hover:text-white bg-slate-900/80 p-1.5 rounded transition-all cursor-grab active:cursor-grabbing" onclick="event.stopPropagation()"><i class="fa-solid fa-arrows-up-down-left-right text-xs"></i></button>` : '';
           adminBtns = `
@@ -793,24 +814,27 @@
             <button onclick="event.stopPropagation(); editLink('${link.id}')" title="Edit" class="text-slate-400 hover:text-sky-400 bg-slate-900/80 p-1.5 rounded transition-all"><i class="fa-solid fa-pen text-xs"></i></button>
             <button onclick="event.stopPropagation(); hapusLink('${link.id}')" title="Hapus" class="text-slate-400 hover:text-red-500 bg-slate-900/80 p-1.5 rounded transition-all"><i class="fa-solid fa-trash text-xs"></i></button>
           </div>`;
-        }
 
+          // >>> SENSOR DRAG MASUK KE DALAM BLOK ADMIN INI <<<
+          if (link.type === 'folder' && !kw) {
+            dragEvents = `draggable="true" ondragstart="handleDragStart(event, '${link.id}')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropFolder(event, '${link.id}')"`;
+          } else if (!kw) {
+            dragEvents = `draggable="true" ondragstart="handleDragStart(event, '${link.id}')"`;
+          }
+        } // <--- KURUNG TUTUP ADMIN YANG BENAR ADA DI SINI
+
+        // CEK JENIS ITEM UNTUK DITAMPILKAN
         if(link.type === 'folder') {
-           // Siapkan Warna (Default Indigo jika kosong)
            let fColor = link.color || '#6366f1';
-           
-           // Alat peracik warna transparan (Hex to RGB)
            let hexToRgb = (hex) => {
              let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
              return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '99, 102, 241';
            };
            let fRgb = hexToRgb(fColor);
-           
            let badgeHtml = link.badge ? `<div class="mt-2 mb-1"><span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] font-bold border border-red-500/30 shadow-sm">${link.badge}</span></div>` : '';
            
-           // Cetak Kotak Folder dengan Warna Kustom
            container.innerHTML += `
-             <div data-id="${link.id}" class="relative backdrop-blur-md border p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 transition-all shadow-lg cursor-pointer group" style="background-color: rgba(${fRgb}, 0.15); border-color: rgba(${fRgb}, 0.5);" onmouseover="this.style.borderColor='${fColor}'" onmouseout="this.style.borderColor='rgba(${fRgb}, 0.5)'" onclick="showFolder('${link.id}', '${link.title}')">
+             <div data-id="${link.id}" ${dragEvents} class="relative backdrop-blur-md border p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 transition-all shadow-lg cursor-pointer group" style="background-color: rgba(${fRgb}, 0.15); border-color: rgba(${fRgb}, 0.5);" onmouseover="this.style.borderColor='${fColor}'" onmouseout="this.style.borderColor='rgba(${fRgb}, 0.5)'" onclick="showFolder('${link.id}', '${link.title}')">
                ${adminBtns}
                <div class="flex flex-col items-center justify-center py-2 h-full">
                  <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold mb-3 group-hover:scale-110 transition-all shadow-inner" style="background-color: rgba(${fRgb}, 0.25); color: ${fColor}; box-shadow: 0 0 15px rgba(${fRgb}, 0.3);">
@@ -829,7 +853,7 @@
            let statusColor = link.status.toLowerCase() === 'online' ? 'text-green-400' : 'text-amber-400';
            
            container.innerHTML += `
-             <div data-id="${link.id}" class="relative bg-slate-800/80 backdrop-blur-md border border-slate-700 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-sky-400 transition-all shadow-lg">
+             <div data-id="${link.id}" ${dragEvents} class="relative bg-slate-800/80 backdrop-blur-md border border-slate-700 p-5 rounded-xl flex flex-col justify-between hover:-translate-y-1 hover:border-sky-400 transition-all shadow-lg">
                ${adminBtns}
                <div>
                  <div class="flex items-start justify-between mb-3 pr-16">
@@ -853,7 +877,6 @@
         }
       });
       
-      // Panggil fungsi mesin geser setelah kartu selesai dibuat
       initDragAndDrop();
     }
 
@@ -1515,6 +1538,100 @@
           });
         }
       });
+    }
+    // ==========================================
+    // FUNGSI QUICK ADD INLINE
+    // ==========================================
+    function toggleQaUrl() {
+      if(document.getElementById('qaType').value === 'folder') {
+        document.getElementById('qaUrl').classList.add('hidden');
+      } else {
+        document.getElementById('qaUrl').classList.remove('hidden');
+      }
+    }
+
+    function handleQuickAdd() {
+      let title = document.getElementById('qaTitle').value;
+      let type = document.getElementById('qaType').value;
+      let url = document.getElementById('qaUrl').value;
+      
+      if(!title) { showToast("Gagal", "Nama harus diisi", false); return; }
+
+      let parentId = '';
+      if(navigationHistory.length > 1) {
+        parentId = navigationHistory[navigationHistory.length - 1].id;
+      }
+
+      let newData = {
+        title: title, url: url, type: type, category: currentCategory, parent_id: parentId,
+        status: 'Online', color: '#6366f1', description: '', icon: 'fa-link', badge: '',
+        order: globalData.links ? globalData.links.length + 1 : 1
+      };
+
+      showToast("Menyimpan...", "Menambahkan item baru...", true);
+      fetchAPI('saveNewLink', newData).then(res => {
+        if(res && res.success) {
+          document.getElementById('qaTitle').value = '';
+          document.getElementById('qaUrl').value = '';
+          showToast("Berhasil", "Item ditambahkan", true);
+          fetchData();
+        } else {
+          showToast("Gagal", "Koneksi terputus", false);
+        }
+      });
+    }
+
+    // ==========================================
+    // FUNGSI DRAG & DROP G-DRIVE STYLE (NESTING)
+    // ==========================================
+    let draggedItemId = null;
+
+    function handleDragStart(e, id) {
+      // Jika yang diseret icon panah 4 arah, biarkan SortableJS yang urus
+      if(e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+      draggedItemId = id;
+    }
+
+    // Efek saat melayang di atas folder
+    function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('border-emerald-400', 'bg-emerald-500/20'); }
+    function handleDragLeave(e) { e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-500/20'); }
+
+    // Saat dilepas (dijatuhkan) ke dalam Folder
+    function handleDropFolder(e, targetFolderId) {
+      e.preventDefault(); e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-500/20');
+      if (!draggedItemId || draggedItemId === targetFolderId) return;
+
+      let item = globalData.links.find(l => l.id.toString() === draggedItemId.toString());
+      if(!item) return;
+
+      item.parent_id = targetFolderId; // Ubah induknya
+      showToast("Memindahkan...", "Memindah masuk ke folder...", true);
+      fetchAPI('updateLink', { id: draggedItemId, payload: item }).then(res => {
+        if(res.success) { fetchData(); }
+      });
+      draggedItemId = null;
+    }
+
+    // Efek saat melayang di tombol KEMBALI (Mengeluarkan dari folder)
+    function handleDragOverBack(e) { if(isAdminLoggedIn && navigationHistory.length > 1) { e.preventDefault(); e.currentTarget.classList.add('bg-red-500/50', 'border-red-400'); } }
+    function handleDragLeaveBack(e) { e.currentTarget.classList.remove('bg-red-500/50', 'border-red-400'); }
+    function handleDropBack(e) {
+      if(!isAdminLoggedIn || navigationHistory.length <= 1) return;
+      e.preventDefault(); e.currentTarget.classList.remove('bg-red-500/50', 'border-red-400');
+      if (!draggedItemId) return;
+      
+      let item = globalData.links.find(l => l.id.toString() === draggedItemId.toString());
+      if(!item) return;
+
+      // Mundur 1 langkah dari history untuk dijadikan induk
+      let targetParentId = navigationHistory.length > 2 ? navigationHistory[navigationHistory.length - 2].id : '';
+      
+      item.parent_id = targetParentId;
+      showToast("Memindahkan...", "Mengeluarkan item dari folder...", true);
+      fetchAPI('updateLink', { id: draggedItemId, payload: item }).then(res => {
+        if(res.success) { fetchData(); }
+      });
+      draggedItemId = null;
     }
   </script>
 </body>
